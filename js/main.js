@@ -999,12 +999,21 @@ function masterMatchesSection(master, sectionId) {
 
 let mastersFilterState = { search: '', categories: new Set() };
 
+function getMasterPitch(m) {
+  if (m.pitch) return m.pitch;
+  return 'Внимательный приём, спокойная атмосфера и результат, ради которого хочется вернуться - запишитесь и убедитесь сами.';
+}
+
 function renderMasterRow(m) {
+  const badge = m.topMaster ? ' <span class="shop-list-badge">Топ</span>' : '';
+  const pitch = getMasterPitch(m);
+
   return `
-    <article class="master-list-item reveal">
-      <div class="shop-list-row master-list-row">
+    <div class="shop-list-item master-list-item reveal" data-name="${escAttr(m.displayName)}">
+      <button type="button" class="shop-list-row master-list-row" aria-expanded="false" aria-label="Показать о мастере: ${escAttr(m.displayName)}">
+        <span class="shop-toggle-icon" aria-hidden="true">+</span>
         <div class="shop-list-main">
-          <span class="shop-list-name">${m.displayName}${m.topMaster ? ' <span class="shop-list-badge">Топ</span>' : ''}</span>
+          <span class="shop-list-name">${m.displayName}${badge}</span>
           <span class="shop-list-sub">${m.specialty}</span>
         </div>
         <span class="shop-list-leader" aria-hidden="true"></span>
@@ -1012,8 +1021,13 @@ function renderMasterRow(m) {
           <span class="master-stars-inline" aria-label="5 из 5">★★★★★</span>
           <span class="shop-list-meta">${m.reviewsLabel}</span>
         </div>
+      </button>
+      <div class="shop-list-desc" aria-hidden="true">
+        <div class="shop-list-desc-inner">
+          <p>${escAttr(pitch)}</p>
+        </div>
       </div>
-    </article>
+    </div>
   `;
 }
 
@@ -1069,6 +1083,7 @@ function renderMastersList() {
     list.innerHTML = blocks.join('');
   }
 
+  bindShopListAccordions(list);
   observeReveal();
 }
 
@@ -1113,6 +1128,46 @@ function initMastersFilters() {
     });
   });
 
+  let mobileFilters = initMobileFilterSheet({
+    key: 'masters',
+    buttonInsertBefore: '#masters-list',
+    getAppliedState: () => ({
+      search: mastersFilterState.search,
+      categories: mastersFilterState.categories,
+    }),
+    onApply: (pending) => {
+      mastersFilterState.search = pending.search;
+      mastersFilterState.categories = new Set(pending.categories);
+      const input = document.getElementById('masters-search-input');
+      if (input) input.value = mastersFilterState.search;
+      container.querySelectorAll('.masters-cat-check').forEach(c => {
+        c.checked = mastersFilterState.categories.has(c.value);
+      });
+      renderMastersList();
+    },
+    renderChips: (wrap, selected) => {
+      if (!wrap) return;
+      const groups = [
+        { title: 'Салон', venue: 'salon' },
+        { title: 'Медицина', venue: 'medical' },
+      ];
+      wrap.innerHTML = groups.map(group => {
+        const sections = getMastersFilterSections(group.venue);
+        if (!sections.length) return '';
+        return `
+          <div class="shop-filter-chip-group">
+            <p class="shop-filter-chip-group-label">${group.title}</p>
+            <div class="shop-filter-chips">
+              ${sections.map(sec => `
+                <button type="button" class="shop-filter-chip${selected.has(sec.id) ? ' is-active' : ''}" data-value="${sec.id}" aria-pressed="${selected.has(sec.id)}">${sec.title}</button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    },
+  });
+
   document.getElementById('masters-clear-filters')?.addEventListener('click', () => {
     mastersFilterState.search = '';
     mastersFilterState.categories.clear();
@@ -1120,6 +1175,7 @@ function initMastersFilters() {
     if (input) input.value = '';
     container.querySelectorAll('.masters-cat-check').forEach(c => { c.checked = false; });
     renderMastersList();
+    mobileFilters?.updateBadge();
   });
 }
 
@@ -1130,6 +1186,180 @@ function initServicesCatalogRender() {
 }
 
 let shopFilterState = { search: '', categories: new Set() };
+
+function updateMobileFilterBtnBadge(btn, state) {
+  if (!btn) return;
+  const count = state.categories.size + (state.search?.trim() ? 1 : 0);
+  let badge = btn.querySelector('.shop-filters-mobile-btn__badge');
+  if (count > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'shop-filters-mobile-btn__badge';
+      btn.appendChild(badge);
+    }
+    badge.textContent = String(count);
+    btn.classList.add('has-active-filters');
+  } else {
+    badge?.remove();
+    btn.classList.remove('has-active-filters');
+  }
+}
+
+function initMobileFilterSheet({
+  key,
+  buttonInsertBefore,
+  getAppliedState,
+  onApply,
+  renderChips,
+}) {
+  const insertBeforeEl = document.querySelector(buttonInsertBefore);
+  if (!insertBeforeEl) return null;
+
+  const openId = `${key}-filters-open`;
+  const sheetId = `${key}-filters-sheet`;
+  const toolbarId = `${key}-filters-toolbar`;
+
+  let toolbar = document.getElementById(toolbarId);
+  if (!toolbar) {
+    toolbar = document.createElement('div');
+    toolbar.id = toolbarId;
+    toolbar.className = 'shop-filters-mobile-toolbar reveal';
+    insertBeforeEl.parentNode.insertBefore(toolbar, insertBeforeEl);
+  }
+
+  let openBtn = document.getElementById(openId);
+  if (!openBtn) {
+    openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.id = openId;
+    openBtn.className = 'shop-filters-mobile-btn';
+    openBtn.setAttribute('aria-haspopup', 'dialog');
+    openBtn.setAttribute('aria-controls', sheetId);
+    openBtn.setAttribute('aria-expanded', 'false');
+    openBtn.innerHTML = '<i class="fa-solid fa-filter" aria-hidden="true"></i><span>Фильтры</span>';
+  }
+  toolbar.appendChild(openBtn);
+
+  let sheet = document.getElementById(sheetId);
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.id = sheetId;
+    sheet.className = 'shop-filters-sheet';
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-labelledby', `${sheetId}-title`);
+    sheet.hidden = true;
+    sheet.innerHTML = `
+      <div class="shop-filters-sheet-backdrop" data-sheet-close tabindex="-1"></div>
+      <div class="shop-filters-sheet-panel">
+        <div class="shop-filters-sheet-handle" aria-hidden="true"></div>
+        <div class="shop-filters-sheet-header">
+          <h2 class="shop-filters-sheet-title" id="${sheetId}-title">Фильтры</h2>
+          <button type="button" class="shop-filters-sheet-close" data-sheet-close>Закрыть</button>
+        </div>
+        <div class="shop-filters-sheet-body">
+          <div class="shop-search shop-search--sheet">
+            <input type="search" id="${key}-search-mobile" class="shop-search-input" placeholder="Поиск..." autocomplete="off">
+          </div>
+          <div class="shop-filter-group shop-filter-group--sheet">
+            <h3 class="shop-filter-label">КАТЕГОРИЯ</h3>
+            <div id="${key}-category-chips" class="shop-filter-chips-wrap"></div>
+          </div>
+        </div>
+        <div class="shop-filters-sheet-footer">
+          <button type="button" class="shop-filters-sheet-apply lo-pill-btn lo-pill-btn--sm" data-sheet-apply>Применить</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+  }
+
+  const chipsWrap = document.getElementById(`${key}-category-chips`);
+  const searchMobile = document.getElementById(`${key}-search-mobile`);
+  let pending = { search: '', categories: new Set() };
+
+  const syncPendingFromApplied = () => {
+    const applied = getAppliedState();
+    pending = {
+      search: applied.search,
+      categories: new Set(applied.categories),
+    };
+    if (searchMobile) searchMobile.value = pending.search;
+    renderChips(chipsWrap, pending.categories);
+  };
+
+  const closeSheet = () => {
+    sheet.classList.remove('is-open');
+    document.body.classList.remove('shop-filters-sheet-open');
+    openBtn.setAttribute('aria-expanded', 'false');
+    let finished = false;
+    const finishClose = () => {
+      if (finished) return;
+      finished = true;
+      sheet.hidden = true;
+    };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishClose();
+      return;
+    }
+    const panel = sheet.querySelector('.shop-filters-sheet-panel');
+    const onEnd = (e) => {
+      if (e.target !== panel) return;
+      panel.removeEventListener('transitionend', onEnd);
+      finishClose();
+    };
+    panel?.addEventListener('transitionend', onEnd);
+    window.setTimeout(finishClose, 400);
+  };
+
+  const openSheet = () => {
+    syncPendingFromApplied();
+    sheet.hidden = false;
+    requestAnimationFrame(() => sheet.classList.add('is-open'));
+    document.body.classList.add('shop-filters-sheet-open');
+    openBtn.setAttribute('aria-expanded', 'true');
+    searchMobile?.focus();
+  };
+
+  openBtn.addEventListener('click', openSheet);
+
+  sheet.querySelectorAll('[data-sheet-close]').forEach(el => {
+    el.addEventListener('click', closeSheet);
+  });
+
+  sheet.querySelector('[data-sheet-apply]')?.addEventListener('click', () => {
+    pending.search = searchMobile?.value || '';
+    onApply(pending);
+    updateMobileFilterBtnBadge(openBtn, getAppliedState());
+    closeSheet();
+  });
+
+  chipsWrap?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.shop-filter-chip');
+    if (!chip) return;
+    const value = chip.dataset.value;
+    if (pending.categories.has(value)) {
+      pending.categories.delete(value);
+      chip.classList.remove('is-active');
+      chip.setAttribute('aria-pressed', 'false');
+    } else {
+      pending.categories.add(value);
+      chip.classList.add('is-active');
+      chip.setAttribute('aria-pressed', 'true');
+    }
+  });
+
+  if (!sheet.dataset.escBound) {
+    sheet.dataset.escBound = '1';
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && sheet.classList.contains('is-open')) closeSheet();
+    });
+  }
+
+  updateMobileFilterBtnBadge(openBtn, getAppliedState());
+
+  return { syncPendingFromApplied, updateBadge: () => updateMobileFilterBtnBadge(openBtn, getAppliedState()) };
+}
 
 function escAttr(str) {
   return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -1159,6 +1389,8 @@ function getServiceDisplayName(item) {
     .replace(/^Акция!\s*/i, '')
     .replace(/^АКЦИЯ\s+N\d+:\s*/i, '')
     .replace(/^Акция\s+«(.+)»$/i, '$1')
+    .replace(/\s*\+\s*/g, ' + ')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }
 
@@ -1168,9 +1400,12 @@ function setShopListItemExpanded(rowBtn, expanded) {
   const desc = item?.querySelector('.shop-list-desc');
   const icon = rowBtn.querySelector('.shop-toggle-icon');
   const name = item?.dataset.name || 'услуги';
+  const isMaster = rowBtn.classList.contains('master-list-row');
+  const showLabel = isMaster ? `Показать о мастере: ${name}` : `Показать описание: ${name}`;
+  const hideLabel = isMaster ? `Скрыть описание: ${name}` : `Скрыть описание: ${name}`;
 
   rowBtn.setAttribute('aria-expanded', String(expanded));
-  rowBtn.setAttribute('aria-label', expanded ? `Скрыть описание: ${name}` : `Показать описание: ${name}`);
+  rowBtn.setAttribute('aria-label', expanded ? hideLabel : showLabel);
   if (icon) icon.textContent = expanded ? '−' : '+';
   if (desc) {
     desc.classList.toggle('is-open', expanded);
@@ -1180,9 +1415,16 @@ function setShopListItemExpanded(rowBtn, expanded) {
 }
 
 function collapseAllShopListItemsExcept(exceptItem) {
-  document.querySelectorAll('#shop-grid .shop-list-item.is-expanded').forEach(openItem => {
+  document.querySelectorAll('#shop-grid .shop-list-item.is-expanded, #masters-list .shop-list-item.is-expanded').forEach(openItem => {
     if (openItem === exceptItem) return;
     setShopListItemExpanded(openItem.querySelector('.shop-list-row'), false);
+  });
+}
+
+function bindShopListAccordions(root) {
+  if (!root) return;
+  root.querySelectorAll('.shop-list-item .shop-list-row').forEach(rowBtn => {
+    rowBtn.addEventListener('click', () => toggleShopListItem(rowBtn));
   });
 }
 
@@ -1319,9 +1561,7 @@ function renderShopGrid() {
     </div>
   `).join('');
 
-  grid.querySelectorAll('.shop-list-item .shop-list-row').forEach(rowBtn => {
-    rowBtn.addEventListener('click', () => toggleShopListItem(rowBtn));
-  });
+  bindShopListAccordions(grid);
 
   observeReveal();
 }
@@ -1354,6 +1594,35 @@ function initShopFilters() {
     });
   });
 
+  let mobileFilters = initMobileFilterSheet({
+    key: 'shop',
+    buttonInsertBefore: '#shop-grid',
+    getAppliedState: () => ({
+      search: shopFilterState.search,
+      categories: shopFilterState.categories,
+    }),
+    onApply: (pending) => {
+      shopFilterState.search = pending.search;
+      shopFilterState.categories = new Set(pending.categories);
+      const input = document.getElementById('shop-search-input');
+      if (input) input.value = shopFilterState.search;
+      container.querySelectorAll('.shop-cat-check').forEach(c => {
+        c.checked = shopFilterState.categories.has(c.value);
+      });
+      renderShopGrid();
+    },
+    renderChips: (wrap, selected) => {
+      if (!wrap) return;
+      wrap.innerHTML = `
+        <div class="shop-filter-chips">
+          ${sections.map(sec => `
+            <button type="button" class="shop-filter-chip${selected.has(sec.id) ? ' is-active' : ''}" data-value="${sec.id}" aria-pressed="${selected.has(sec.id)}">${sec.title}</button>
+          `).join('')}
+        </div>
+      `;
+    },
+  });
+
   document.getElementById('shop-clear-filters')?.addEventListener('click', () => {
     shopFilterState.search = '';
     shopFilterState.categories.clear();
@@ -1361,6 +1630,7 @@ function initShopFilters() {
     if (input) input.value = '';
     container.querySelectorAll('.shop-cat-check').forEach(c => { c.checked = false; });
     renderShopGrid();
+    mobileFilters?.updateBadge();
   });
 }
 

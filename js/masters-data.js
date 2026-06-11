@@ -10,6 +10,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80',
     defaultService: 'Стрижка женская (мытье+сушка по форме)',
     categories: ['barber', 'hair'],
+    pitch: 'Аккуратная стрижка и укладка без спешки - подберёт форму под ваш образ и подскажет, как сохранить результат дома.',
   },
   {
     displayName: 'Евгения Т.',
@@ -21,6 +22,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1595476108010-b7d1a01996a1?w=400&q=80',
     defaultService: 'Окрашивание одним цветом',
     categories: ['barber', 'hair'],
+    pitch: 'Сложные оттенки и окрашивания с честной консультацией до начала - цвет выглядит живым, волосы остаются ухоженными.',
   },
   {
     displayName: 'Зинаида Х.',
@@ -32,6 +34,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80',
     defaultService: 'Мелирование',
     categories: ['barber', 'hair'],
+    pitch: 'Мягкое мелирование и натуральные переходы - волосы смотрятся свежими, без эффекта пересушенных концов.',
   },
   {
     displayName: 'Катерина М.',
@@ -43,6 +46,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80',
     defaultService: 'Стрижка комплекс с укладкой',
     categories: ['barber', 'hair'],
+    pitch: 'Стрижка с укладкой за один визит - выйдете с готовым образом, а не просто «подстриженной».',
   },
   {
     displayName: 'Любовь П.',
@@ -54,6 +58,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&q=80',
     defaultService: 'Массаж спины (женский)',
     categories: ['cosmetology', 'massage', 'sugaring', 'apparatus'],
+    pitch: 'Отдельный кабинет и спокойная атмосфера - руки, которые снимают напряжение, когда хочется выдохнуть по-настоящему.',
   },
   {
     displayName: 'Светлана Х.',
@@ -65,6 +70,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400&q=80',
     defaultService: 'Ультразвуковая чистка лица',
     categories: ['cosmetology', 'sugaring', 'laser', 'apparatus', 'promo'],
+    pitch: 'Внимательный взгляд на кожу и деликатные протоколы - подберёт процедуру, после которой лицо выглядит отдохнувшим.',
   },
   {
     displayName: 'Юлия Л.',
@@ -76,6 +82,7 @@ const MASTERS_DATA = [
     photo: 'https://images.unsplash.com/photo-1560750588-73207b1e9f9b?w=400&q=80',
     defaultService: 'Комбинированная чистка (УЗИ + механическая)',
     categories: ['cosmetology'],
+    pitch: 'Глубокое очищение и уход без агрессии - кожа дышит, а процедура проходит комфортно от начала до конца.',
   },
   {
     displayName: 'Елена Б.',
@@ -83,10 +90,11 @@ const MASTERS_DATA = [
     specialty: 'Мастер ногтевого сервиса',
     reviews: 347,
     reviewsLabel: '347 отзывов',
-    topMaster: true,
+    topMaster: false,
     photo: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80',
     defaultService: 'Маникюр + гель-лак',
     categories: ['nails'],
+    pitch: 'Ровное покрытие, аккуратная форма и стерильность на каждом этапе - маникюр держится красиво и не раздражает кожу.',
   },
 ];
 
