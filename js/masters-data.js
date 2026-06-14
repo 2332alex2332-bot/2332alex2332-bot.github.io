@@ -100,7 +100,7 @@ const MASTERS_DATA = [
 
 const SALON_MASTERS = [
   'Любой свободный мастер',
-  ...MASTERS_DATA.map(m => `${m.displayName} — ${m.specialty.toLowerCase()}`),
+  ...MASTERS_DATA.map(m => `${m.displayName} - ${m.specialty.toLowerCase()}`),
 ];
 
 function getMasterNamesForCategory(cat) {

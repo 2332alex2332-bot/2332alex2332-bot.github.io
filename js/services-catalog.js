@@ -407,6 +407,10 @@ const SERVICE_VENUES = {
   },
 };
 
+function getServiceAddress(venueId) {
+  return SERVICE_VENUES[venueId]?.addressFull || SERVICE_VENUES.salon.addressFull;
+}
+
 function venueIdForSection(sectionId) {
   return SERVICE_VENUES.medical.sectionIds.includes(sectionId) ? 'medical' : 'salon';
 }
